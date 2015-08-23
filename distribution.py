@@ -63,6 +63,7 @@ def whichDistribution(samples, min_r_squared = 0.95):
 	d = []
 	for name in m:
 		if isDistribution(samples, name, min_r_squared): d.append(name)
+	if len(d) == 0: d = ['None']
 	return d
 
 m = {
