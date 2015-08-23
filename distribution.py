@@ -31,7 +31,7 @@ def isExp(samples, min_r_squared = 0.95):
 
 def isUniform(samples, min_r_squared = 0.95):
 	samples, n, mean, stddev, p = preprosses(samples)
-	q = stddev * math.sqrt(3) * (2*p - 1)
+	q = stddev * math.sqrt(3) * (2*p - 1) + mean
 	return compute_r_squared(samples, q) > min_r_squared	
 
 def isNormal(samples, min_r_squared = 0.95):
