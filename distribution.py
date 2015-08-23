@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import math
 import numpy as np
 from scipy import stats
 
@@ -8,7 +9,7 @@ def preprosses(samples):
 	n = samples.shape[0]
 	mean = np.mean(samples)
 	stddev = np.std(samples)
-	p = np.array([(i + 0.5)  / n for i in range(n)])
+	p = np.array([(i + 0.5)  / n for i in xrange(n)])
 	return samples, n, mean, stddev, p
 
 # fit samples with q, return R^2
@@ -27,20 +28,27 @@ def isExp(samples, min_r_squared = 0.95):
 	q = - np.log( 1 - p) / l
 	return compute_r_squared(samples, q) > min_r_squared
 
+
+def isUniform(samples, min_r_squared = 0.95):
+	samples, n, mean, stddev, p = preprosses(samples)
+	q = stddev * math.sqrt(3) * (2*p - 1)
+	return compute_r_squared(samples, q) > min_r_squared	
+
 def isNormal(samples, min_r_squared = 0.95):
 	samples, n, mean, stddev, p = preprosses(samples)
 	q = np.array([stats.norm.ppf(pp, loc = mean, scale = stddev) for pp in p])
 	return compute_r_squared(samples, q) > min_r_squared
 
 def isPoisson(samples, min_r_squared = 0.95):
-	samples, n, mean, stddev, p = preprosses(samples)	
+	samples, n, mean, stddev, p = preprosses(samples)
 	q = np.array([stats.poisson.ppf(pp, mu = mean) for pp in p])
 	return compute_r_squared(samples, q) > min_r_squared
+
 
 def isDistribution(samples, distribution, min_r_squared = 0.95):	
 	if distribution not in m.keys():
 		print 'Error, unknonwn distribution type:', distribution
-		return
+		return None
 
 	return m[distribution](samples, min_r_squared)
 
@@ -53,7 +61,8 @@ def whichDistribution(samples, min_r_squared = 0.95):
 m = {
 	'exp': isExp,
 	'norm': isNormal,
-	'poission': isPoisson
+	'poission': isPoisson,
+	'uniform': isUniform
 }
 
 if __name__ == '__main__':
@@ -69,5 +78,9 @@ if __name__ == '__main__':
 	print '--------------------------------'
 
 	samples = [0,0,0,0,1,1,1,1,1,1,1,2,2,2,2,3,3,4]
+	print whichDistribution(samples)
+	print '--------------------------------'
+
+	samples = [1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6]
 	print whichDistribution(samples)
 	print '--------------------------------'
