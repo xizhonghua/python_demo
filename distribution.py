@@ -33,6 +33,27 @@ def isExp(samples, min_r_squared=0.95):
   return compute_r_squared(samples, q) > min_r_squared, {'lambda': l}
 
 
+def isBeta(samples, min_r_squared=0.95):
+  samples, n, mean, stddev, p = preprosses(samples)
+  # estimate alpha, beta
+  a = samples.min()
+  c = samples.max()
+
+  x_bar = (mean - a) / (c - a)
+  v_bar = stddev ** 2 / (c - a) ** 2
+
+  if v_bar < x_bar * (1 - x_bar):
+    alpha = x_bar * (x_bar * (1 - x_bar) / v_bar - 1)
+    beta = (1 - x_bar) * alpha
+    print 'a,b=', alpha, beta
+    print stats.beta.fit(samples, alpha, beta)
+    # q = np.array([stats.beta.ppf()])
+    # return compute_r_squared(samples, q) > min_r_squared, {'alpha':alp}
+    return False, {}
+  else:
+    return False, {}
+
+
 def isUniform(samples, min_r_squared=0.95):
   samples, n, mean, stddev, p = preprosses(samples)
   q = stddev * math.sqrt(3) * (2 * p - 1) + mean
@@ -49,19 +70,33 @@ def isNormal(samples, min_r_squared=0.95):
 
 
 def isLogNormal(samples, min_r_squared=0.95):
-  samples, n, mean, stddev, p = preprosses(samples)
   if np.sum(samples > 0) == len(samples):
     r, p = isNormal(np.log(samples), min_r_squared)
-    s, miu, sigma = stats.lognorm.fit(samples)
-    return r, {'s': s, 'miu': miu, 'sigma': sigma}
+    # s, miu, sigma = stats.lognorm.fit(samples)
+    # return r, {'s': s, 'miu': miu, 'sigma': sigma}
+    return r, p
   else:
     return False, {}
 
 
 def isPoisson(samples, min_r_squared=0.95):
   samples, n, mean, stddev, p = preprosses(samples)
-  q = np.array([stats.poisson.ppf(pp, mu=mean) for pp in p])
-  return compute_r_squared(samples, q) > min_r_squared, {'mu': mean}
+  q = np.array([stats.poisson.ppf(pp, mu=mean, loc=mean) for pp in p])
+  return compute_r_squared(
+      samples, q) > min_r_squared, {'mu': mean, 'miu': mean}
+
+
+def isPowerlaw(samples, min_r_squared=0.95):
+  samples, n, mean, stddev, p = preprosses(samples)
+  min_value = samples.min()
+  if min_value == 0 or np.sum(samples < 0) > 0:
+    return False, {}
+  alpha = 1 + n / np.sum(np.log(samples / min_value))
+  alpha, loc, scale = stats.powerlaw.fit(samples, alpha)
+  q = np.array([stats.powerlaw.ppf(pp, alpha, loc=loc, scale=scale)
+                for pp in p])
+  return compute_r_squared(samples, q) > min_r_squared, {
+      'alpha': alpha, 'miu': loc, 'sigma': scale}
 
 
 def isDistribution(samples, distribution, min_r_squared=0.95):
@@ -87,10 +122,15 @@ m = {
     'norm': isNormal,
     'possion': isPoisson,
     'uniform': isUniform,
-    'lognorm': isLogNormal
+    'lognorm': isLogNormal,
+    'powerlaw': isPowerlaw
+    # 'beta': isBeta
 }
 
 if __name__ == '__main__':
+  samples = stats.powerlaw.rvs(2, loc=0, scale=1, size=500)
+  print 'expected = [\'powerlaw\'], actual =', whichDistribution(samples, 0.98)
+
   samples = stats.expon.rvs(loc=1, scale=1, size=500)
   print 'expected = [\'exp\'], actual =', whichDistribution(samples, 0.98)
 
@@ -100,12 +140,12 @@ if __name__ == '__main__':
 
   # poisson
   samples = stats.poisson.rvs(mu=2, size=500)
-  print 'expected = [\'possion\'], actual =', whichDistribution(samples, 0.95)
+  print 'expected = [\'possion\'], actual =', whichDistribution(samples, 0.98)
 
   # uniform
   samples = stats.uniform.rvs(loc=1, scale=1, size=500)
   print 'expected = [\'uniform\'], actual =', whichDistribution(samples, 0.98)
 
   # lognormal
-  samples = stats.lognorm.rvs(s=1, loc=1, scale=1, size=500)
+  samples = stats.lognorm.rvs(s=1, loc=0, scale=3, size=500)
   print 'expected = [\'lognorm\'], actual =', whichDistribution(samples, 0.9)
