@@ -19,7 +19,7 @@ parser = argparse.ArgumentParser(description='Process some integers.')
   parser.add_argument(
       "-b",
       help="score is stored in binary mode",
-      action="store_true")
+      action="store_true")  
   parser.add_argument(
       "-o",
       help="output label filename",
@@ -27,3 +27,11 @@ parser = argparse.ArgumentParser(description='Process some integers.')
       default="../labels.txt")
 
   args = parser.parse_args()
+  
+  # to access args
+  print args.k             #  -k
+  print args.plot          #  --plot
+  print args.b             #  -b
+  print args.e             #  -e
+  print args.m             #  -m
+  print args.dist_filename # dist_filename
